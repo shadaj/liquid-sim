@@ -1,18 +1,20 @@
 import { Renderer, World, Particle, tick } from "../pkg/index.js";
 
-const renderer = Renderer.new(document.getElementById("canvas"))
+const canvas_elem = document.getElementById("canvas");
+const fps_elem = document.getElementById("fps");
+
 const world = World.new();
+const renderer = Renderer.new(canvas_elem);
 
-world.add_particle(Particle.new(0.25, 0.25));
-
-world.add_particle(Particle.new(0.5, 0.5));
-
-world.add_particle(Particle.new(0.75, 0.75));
+for (let i = 0; i < 100; i++) {
+  world.add_particle(Particle.new(Math.random(), Math.random()));
+}
 
 let last_timestamp = null;
 function on_frame(timestamp) {
   if (!last_timestamp) last_timestamp = timestamp;
   let dt = (timestamp - last_timestamp) / 1000;
+  fps_elem.innerHTML = `FPS: ${(1 / dt).toFixed(2)}`;
   tick(renderer, world, dt);
 
   last_timestamp = timestamp;

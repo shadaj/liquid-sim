@@ -1,6 +1,6 @@
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
-use web_sys::{WebGlProgram, WebGlRenderingContext, WebGlShader};
+use web_sys::{WebGlProgram, WebGl2RenderingContext, WebGlShader};
 use js_sys::Float32Array;
 
 use crate::world::World;
@@ -8,21 +8,21 @@ use crate::world::World;
 #[wasm_bindgen]
 pub struct Renderer {
   program: WebGlProgram,
-  context: WebGlRenderingContext
+  context: WebGl2RenderingContext
 }
 
 #[wasm_bindgen]
 impl Renderer {
   pub fn new(elem: web_sys::HtmlCanvasElement) -> Renderer {
     let context = elem
-      .get_context("webgl")
+      .get_context("webgl2")
       .unwrap()
       .unwrap()
-      .dyn_into::<WebGlRenderingContext>().unwrap();
+      .dyn_into::<WebGl2RenderingContext>().unwrap();
     
     let vert_shader = compile_shader(
       &context,
-      WebGlRenderingContext::VERTEX_SHADER,
+      WebGl2RenderingContext::VERTEX_SHADER,
       r#"
       attribute vec4 position;
       void main() {
@@ -33,12 +33,13 @@ impl Renderer {
 
     let frag_shader = compile_shader(
         &context,
-        WebGlRenderingContext::FRAGMENT_SHADER,
+        WebGl2RenderingContext::FRAGMENT_SHADER,
         r#"
         precision highp float;
-        uniform vec2 particles[2 * 256];
         uniform vec2 screen_size;
         uniform float particle_count;
+        uniform sampler2D particles_texture;
+
         void main() {
           float x = gl_FragCoord.x / screen_size.x;
           float y = gl_FragCoord.y / screen_size.y;
@@ -52,7 +53,10 @@ impl Renderer {
               break;
             }
 
-            vec2 particle_pos = particles[i];
+            float particle_x = texture2D(particles_texture, vec2(0.25, (float(i) + 0.5) / particle_count)).x;
+            float particle_y = texture2D(particles_texture, vec2(0.75, (float(i) + 0.5) / particle_count)).x;
+
+            vec2 particle_pos = vec2(particle_x, particle_y);
             float r = length(particle_pos - my_pos);
             if (r <= 0.05) {
               gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
@@ -66,7 +70,22 @@ impl Renderer {
     context.use_program(Some(&program));
 
     let buffer = context.create_buffer().ok_or("failed to create buffer").unwrap();
-    context.bind_buffer(WebGlRenderingContext::ARRAY_BUFFER, Some(&buffer));
+    context.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&buffer));
+
+    let particles_texture = context.create_texture();
+    context.bind_texture(WebGl2RenderingContext::TEXTURE_2D, particles_texture.as_ref());
+
+    context.tex_parameteri(
+      WebGl2RenderingContext::TEXTURE_2D,
+      WebGl2RenderingContext::TEXTURE_MIN_FILTER,
+      WebGl2RenderingContext::NEAREST as i32
+    );
+
+    context.tex_parameteri(
+      WebGl2RenderingContext::TEXTURE_2D,
+      WebGl2RenderingContext::TEXTURE_MAG_FILTER,
+      WebGl2RenderingContext::NEAREST as i32
+    );
 
     Renderer {
       program: program,
@@ -81,9 +100,9 @@ impl Renderer {
     };
 
     self.context.buffer_data_with_array_buffer_view(
-        WebGlRenderingContext::ARRAY_BUFFER,
-        &data_array,
-        WebGlRenderingContext::STATIC_DRAW,
+      WebGl2RenderingContext::ARRAY_BUFFER,
+      &data_array,
+      WebGl2RenderingContext::STATIC_DRAW,
     );
 
     let position_handle = self.context.get_attrib_location(&self.program, "position") as u32;
@@ -91,20 +110,8 @@ impl Renderer {
 
     self.context.vertex_attrib_pointer_with_i32(
       0, 2, // 2 elements: x and y position
-      WebGlRenderingContext::FLOAT, false,
+      WebGl2RenderingContext::FLOAT, false,
       0, 0
-    );
-
-    let particles_handle = self.context.get_uniform_location(&self.program, "particles");
-    let mut vert_array: Vec<f32> = vec![];
-    for particle in &world.particles {
-      vert_array.push(particle.pos.x);
-      vert_array.push(particle.pos.y);
-    }
-
-    self.context.uniform2fv_with_f32_array(
-      particles_handle.as_ref(),
-      &vert_array
     );
 
     let screen_size_handle = self.context.get_uniform_location(&self.program, "screen_size");
@@ -119,11 +126,39 @@ impl Renderer {
       world.particles.len() as f32
     );
 
+    let mut vert_array: Vec<f32> = vec![];
+    for particle in &world.particles {
+      vert_array.push(particle.pos.x);
+      vert_array.push(particle.pos.y);
+    }
+
+    let particles_array = unsafe {
+      Float32Array::view(&vert_array)
+    };
+
+    self.context.tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_array_buffer_view_and_src_offset(
+      WebGl2RenderingContext::TEXTURE_2D,
+      0,
+      WebGl2RenderingContext::R32F as i32,
+      2,
+      world.particles.len() as i32,
+      0,
+      WebGl2RenderingContext::RED,
+      WebGl2RenderingContext::FLOAT,
+      &particles_array,
+      0
+    ).unwrap();
+
+    self.context.uniform1i(
+      self.context.get_uniform_location(&self.program, "particles_texture").as_ref(),
+      0
+    );
+
     self.context.clear_color(0.0, 0.0, 0.0, 1.0);
-    self.context.clear(WebGlRenderingContext::COLOR_BUFFER_BIT);
+    self.context.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
     self.context.draw_arrays(
-      WebGlRenderingContext::TRIANGLE_STRIP,
+      WebGl2RenderingContext::TRIANGLE_STRIP,
       0,
       4,
     );
@@ -131,7 +166,7 @@ impl Renderer {
 }
 
 pub fn compile_shader(
-  context: &WebGlRenderingContext,
+  context: &WebGl2RenderingContext,
   shader_type: u32,
   source: &str,
 ) -> Result<WebGlShader, String> {
@@ -142,7 +177,7 @@ pub fn compile_shader(
   context.compile_shader(&shader);
 
   if context
-      .get_shader_parameter(&shader, WebGlRenderingContext::COMPILE_STATUS)
+      .get_shader_parameter(&shader, WebGl2RenderingContext::COMPILE_STATUS)
       .as_bool()
       .unwrap_or(false)
   {
@@ -155,7 +190,7 @@ pub fn compile_shader(
 }
 
 pub fn link_program(
-  context: &WebGlRenderingContext,
+  context: &WebGl2RenderingContext,
   vert_shader: &WebGlShader,
   frag_shader: &WebGlShader,
 ) -> Result<WebGlProgram, String> {
@@ -168,7 +203,7 @@ pub fn link_program(
   context.link_program(&program);
 
   if context
-      .get_program_parameter(&program, WebGlRenderingContext::LINK_STATUS)
+      .get_program_parameter(&program, WebGl2RenderingContext::LINK_STATUS)
       .as_bool()
       .unwrap_or(false)
   {

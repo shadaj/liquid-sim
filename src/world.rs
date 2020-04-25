@@ -1,6 +1,9 @@
 use wasm_bindgen::prelude::*;
 
 use crate::particle::*;
+use std::panic;
+
+extern crate console_error_panic_hook;
 
 #[wasm_bindgen]
 pub struct World {
@@ -12,6 +15,8 @@ const GRAVITY: f32 = 9.8;
 #[wasm_bindgen]
 impl World {
   pub fn new() -> World {
+    panic::set_hook(Box::new(console_error_panic_hook::hook));
+
     World {
       particles: vec![]
     }

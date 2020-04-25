@@ -18,10 +18,7 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 // This is like the `main` function, except for JavaScript.
 #[wasm_bindgen]
 pub fn tick(renderer: &Renderer, world: &mut World, dt: f32) -> Result<(), JsValue> {
-    // This provides better error messages in debug mode.
-    // It's disabled in release mode so it doesn't bloat up the file size.
-    #[cfg(debug_assertions)]
-    console_error_panic_hook::set_once();
+    
 
     world.update(dt);
     renderer.render(world);
