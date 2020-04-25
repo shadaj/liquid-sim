@@ -24,6 +24,7 @@ impl World {
   fn apply_gravity(&mut self) {
     for particle in &mut self.particles {
       // we don't add, we just set to reset the accumulator
+      particle.force_acc.x = 0.0;
       particle.force_acc.y = -GRAVITY * particle.mass;
     }
   }
