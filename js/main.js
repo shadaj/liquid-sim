@@ -6,7 +6,7 @@ const fps_elem = document.getElementById("fps");
 const world = World.new();
 const renderer = Renderer.new(canvas_elem);
 
-for (let i = 0; i < 100; i++) {
+for (let i = 0; i < 5000; i++) {
   world.add_particle(Particle.new(Math.random(), Math.random()));
 }
 

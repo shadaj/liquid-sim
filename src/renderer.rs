@@ -48,7 +48,7 @@ impl Renderer {
           gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
           int particle_count_int = int(particle_count);
 
-          for (int i = 0; i < 256; i++) {
+          for (int i = 0; i < 100000; i++) { // 100000 must be higher than max number of particles
             if (i >= particle_count_int) {
               break;
             }
@@ -58,7 +58,7 @@ impl Renderer {
 
             vec2 particle_pos = vec2(particle_x, particle_y);
             float r = length(particle_pos - my_pos);
-            if (r <= 0.05) {
+            if (r <= 0.01) {
               gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
             } 
           }
