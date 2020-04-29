@@ -7,10 +7,14 @@ extern crate console_error_panic_hook;
 
 #[wasm_bindgen]
 pub struct World {
-  pub(crate) particles: Vec<Particle>
+  pub(crate) particles: Vec<Particle>,
+  
 }
 
-const GRAVITY: f32 = 9.8;
+const GRAVITY: f32 = 0.5;
+const BOUNDARY_COR: f32 = 0.5; // Coefficient of restitution
+const BOUNDARY_MIN_DV: f32 = 0.005; // If particle is too slow, it is accelerated to atleast this much
+// static particle_map: HashMap = HashMap::new();
 
 #[wasm_bindgen]
 impl World {
@@ -48,9 +52,35 @@ impl World {
     }
   }
 
+  fn wall_collisions(&mut self){
+    for particle in &mut self.particles {
+      if particle.pos.x < 0.0 {
+        particle.vel.x = ( BOUNDARY_MIN_DV).max(-BOUNDARY_COR * particle.vel.x);
+        particle.pos.x = -1.0 * particle.pos.x;
+      } else if particle.pos.x > 1.0 {
+        particle.vel.x = (-BOUNDARY_MIN_DV).min(-BOUNDARY_COR * particle.vel.x);
+        particle.pos.x =  1.0 - (particle.pos.x - 1.0);
+      } else if particle.pos.y < 0.0 {
+        particle.vel.y = ( BOUNDARY_MIN_DV).max(-BOUNDARY_COR * particle.vel.y);
+        particle.pos.y = -1.0 * particle.pos.y;
+      } else if particle.pos.y > 1.0 {
+        particle.vel.y = (-BOUNDARY_MIN_DV).min(-BOUNDARY_COR * particle.vel.y);
+        particle.pos.y =  1.0 - (particle.pos.y - 1.0);
+      }
+      if particle.vel.x < 0.0001 && particle.vel.x > 0.0001{
+        particle.vel.x = 0.0;
+      }
+      if particle.vel.y < 0.0001 && particle.vel.y > 0.0001{
+        particle.vel.y = 0.0;
+      }
+    }
+  }
+  
+
   pub(crate) fn update(&mut self, dt: f32) {
     self.apply_gravity();
     self.update_velocities(dt);
     self.update_positions(dt);
+    self.wall_collisions();
   }
 }
