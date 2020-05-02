@@ -12,17 +12,18 @@ pub struct World {
   neighbors: HashMap<(i32, i32), Vec<usize>>,
 }
 
-const PARTICLE_RADIUS: f32 = 0.025;
+const PARTICLE_RADIUS: f32 = 0.5;
 
-const GRAVITY: f32 = 0.5;
-const BOUNDARY_COR: f32 = 0.5; // Coefficient of restitution
+const GRAVITY: f32 = 30.0;
+const BOUNDARY_COR: f32 = 0.1; // Coefficient of restitution
 const BOUNDARY_MIN_DV: f32 = 0.005; // If particle is too slow, it is accelerated to atleast this much
-const CELL_SIZE: f32 = PARTICLE_RADIUS * 3.0;
 
-const INTERACTION_RADIUS: f32 = PARTICLE_RADIUS;
-const STIFFNESS: f32 = 0.5;
-const REST_DENSITY: f32 = 1.0;
-const STIFFNESS_NEAR: f32 = 5.0;
+const INTERACTION_RADIUS: f32 = 10.0;
+const STIFFNESS: f32 = 35.0;
+const REST_DENSITY: f32 = 5.0;
+const STIFFNESS_NEAR: f32 = 100.0;
+
+const CELL_SIZE: f32 = INTERACTION_RADIUS * 4.0;
 // static particle_map: HashMap = HashMap::new();
 
 #[wasm_bindgen]
@@ -67,22 +68,22 @@ impl World {
       if particle.pos.x < PARTICLE_RADIUS {
         particle.vel.x = ( BOUNDARY_MIN_DV).max(-BOUNDARY_COR * particle.vel.x);
         particle.pos.x = PARTICLE_RADIUS;
-      } else if particle.pos.x > (1.0 - PARTICLE_RADIUS) {
+      } else if particle.pos.x > (100.0 - PARTICLE_RADIUS) {
         particle.vel.x = (-BOUNDARY_MIN_DV).min(-BOUNDARY_COR * particle.vel.x);
-        particle.pos.x =  1.0 - PARTICLE_RADIUS;
+        particle.pos.x =  100.0 - PARTICLE_RADIUS;
       } else if particle.pos.y < PARTICLE_RADIUS {
         particle.vel.y = ( BOUNDARY_MIN_DV).max(-BOUNDARY_COR * particle.vel.y);
         particle.pos.y = PARTICLE_RADIUS;
-      } else if particle.pos.y > (1.0 - PARTICLE_RADIUS) {
+      } else if particle.pos.y > (100.0 - PARTICLE_RADIUS) {
         particle.vel.y = (-BOUNDARY_MIN_DV).min(-BOUNDARY_COR * particle.vel.y);
-        particle.pos.y =  1.0 - PARTICLE_RADIUS;
+        particle.pos.y =  100.0 - PARTICLE_RADIUS;
       }
-      if particle.vel.x < 0.0001 && particle.vel.x > 0.0001{
-        particle.vel.x = 0.0;
-      }
-      if particle.vel.y < 0.0001 && particle.vel.y > 0.0001{
-        particle.vel.y = 0.0;
-      }
+      // if particle.vel.x < 0.0001 && particle.vel.x > 0.0001{
+      //   particle.vel.x = 0.0;
+      // }
+      // if particle.vel.y < 0.0001 && particle.vel.y > 0.0001{
+      //   particle.vel.y = 0.0;
+      // }
     }
   }
 
@@ -126,25 +127,22 @@ impl World {
           let neighbor = &self.particles[*neighbor_idx];
           let distance = (cur_particle.pos - neighbor.pos).length();
           
-          let gradient = if (distance > INTERACTION_RADIUS) {
-            0.0
-          } else {
-            1.0 - distance / INTERACTION_RADIUS
-          };
+          let gradient = f32::max(1.0 - distance / INTERACTION_RADIUS, 0.0);
 
           gradient_cache.push(gradient);
           
-          density += gradient * gradient;
-          near_density += gradient * gradient * gradient;
+          density += gradient * gradient * cur_particle.mass;
+          near_density += gradient * gradient * gradient * cur_particle.mass;
         } else {
           gradient_cache.push(0.0);
         }
       }
 
-      let pressure = STIFFNESS * (density - REST_DENSITY);
-      let pressure_near = STIFFNESS_NEAR * near_density;
+      let pressure = STIFFNESS * (density - REST_DENSITY) * cur_particle.mass;
+      let pressure_near = STIFFNESS_NEAR * near_density * cur_particle.mass;
 
       let original_pos = cur_particle.pos;
+      let cur_particle_mass = cur_particle.mass;
 
       for (grad_idx, neighbor_idx) in neighbors.iter().enumerate() {
         if idx != *neighbor_idx {
@@ -152,15 +150,17 @@ impl World {
           let neighbor_gradient = gradient_cache[grad_idx];
           let magnitude = pressure * neighbor_gradient + pressure_near * neighbor_gradient * neighbor_gradient;
           let direction = (neighbor.pos - original_pos) / (neighbor.pos - original_pos).length();
+          
           let force = direction * magnitude;
-          let delta = force * dt * dt;
-          let delta_vel = force * dt;
 
-          self.particles[*neighbor_idx].pos = self.particles[*neighbor_idx].pos + delta * 0.5;
-          self.particles[idx].pos = self.particles[idx].pos - delta * 0.5;
+          let neighbor_mass = neighbor.mass;
+          let mass_total = cur_particle_mass + neighbor_mass;
 
-          self.particles[*neighbor_idx].vel = self.particles[*neighbor_idx].vel + delta_vel;
-          self.particles[idx].vel = self.particles[idx].vel - delta_vel;
+          self.particles[idx].pos = self.particles[idx].pos - 0.5 * force * dt * dt * (neighbor_mass / mass_total);
+          self.particles[idx].vel = self.particles[idx].vel - force * dt  * (neighbor_mass / mass_total);
+
+          self.particles[*neighbor_idx].pos = self.particles[*neighbor_idx].pos + 0.5 * force * dt * dt  * (cur_particle_mass / mass_total);
+          self.particles[*neighbor_idx].vel = self.particles[*neighbor_idx].vel + force * dt * (cur_particle_mass / mass_total);
         }
       }
     }

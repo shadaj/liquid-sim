@@ -44,8 +44,8 @@ impl Renderer {
           float x = gl_FragCoord.x / screen_size.x;
           float y = gl_FragCoord.y / screen_size.y;
           vec2 my_pos = vec2(x, y);
-          float r = 0.025; // hardcoded radius for each particle
-          float threshhold = 5.0;
+          float r = 0.01; // hardcoded radius for each particle
+          float threshhold = 1.0;
 
           gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
           int particle_count_int = int(particle_count);
@@ -140,8 +140,8 @@ impl Renderer {
 
     let mut vert_array: Vec<f32> = vec![];
     for particle in &world.particles {
-      vert_array.push(particle.pos.x);
-      vert_array.push(particle.pos.y);
+      vert_array.push(particle.pos.x / 100.0);
+      vert_array.push(particle.pos.y / 100.0);
     }
 
     let particles_array = unsafe {

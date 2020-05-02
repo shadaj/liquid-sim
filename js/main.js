@@ -7,7 +7,7 @@ const world = World.new();
 const renderer = Renderer.new(canvas_elem);
 
 for (let i = 0; i < 250; i++) {
-  world.add_particle(Particle.new(Math.random(), Math.random()));
+  world.add_particle(Particle.new(Math.random() * 100, Math.random() * 100));
 }
 
 let last_timestamp = null;

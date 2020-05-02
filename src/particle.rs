@@ -45,6 +45,17 @@ impl Sub for Vec2D {
   }
 }
 
+impl Mul<Vec2D> for f32 {
+  type Output = Vec2D;
+
+  fn mul(self, other: Vec2D) -> Vec2D {
+    Vec2D {
+      x: self * other.x,
+      y: self * other.y
+    }
+  }
+}
+
 impl Mul<f32> for Vec2D {
   type Output = Vec2D;
 
@@ -81,7 +92,7 @@ impl Particle {
     Particle {
       pos: Vec2D::new(x, y),
       vel: Vec2D::new(0.0, 0.0),
-      mass: 1.0,
+      mass: 0.85,
       force_acc: Vec2D::new(0.0, 0.0)
     }
   }
