@@ -88,11 +88,11 @@ pub struct Particle {
 
 #[wasm_bindgen]
 impl Particle {
-  pub fn new(x: f32, y: f32) -> Particle {
+  pub fn new(x: f32, y: f32, mass: f32) -> Particle {
     Particle {
       pos: Vec2D::new(x, y),
       vel: Vec2D::new(0.0, 0.0),
-      mass: 0.85,
+      mass: mass,
       force_acc: Vec2D::new(0.0, 0.0)
     }
   }
