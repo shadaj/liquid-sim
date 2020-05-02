@@ -44,8 +44,8 @@ impl Renderer {
           float x = gl_FragCoord.x / screen_size.x;
           float y = gl_FragCoord.y / screen_size.y;
           vec2 my_pos = vec2(x, y);
-          float r = 0.01; // hardcoded radius for each particle
-          float threshhold = 1.0;
+          float r = 0.025; // hardcoded radius for each particle
+          float threshhold = 5.0;
 
           gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
           int particle_count_int = int(particle_count);
@@ -61,6 +61,11 @@ impl Renderer {
 
             vec2 particle_pos = vec2(particle_x, particle_y);
             float dist = length(particle_pos - my_pos);
+
+            // if (dist < r) {
+            //   gl_FragColor = vec4(0.0, 0.0, 1.0, 1.0);
+            //   break;
+            // }
             
             v += r*r / (dist * dist);
 

@@ -15,12 +15,17 @@ use crate::renderer::*;
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
+const MAX_DT: f32 = 0.01;
+
 // This is like the `main` function, except for JavaScript.
 #[wasm_bindgen]
 pub fn tick(renderer: &Renderer, world: &mut World, dt: f32) -> Result<(), JsValue> {
-    
+    let mut dt_slice = 0;
+    while dt_slice as f32 * MAX_DT < dt {
+        world.update(MAX_DT);
+        dt_slice += 1;
+    }
 
-    world.update(dt);
     renderer.render(world);
 
     Ok(())
