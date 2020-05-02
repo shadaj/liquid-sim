@@ -44,15 +44,13 @@ impl Renderer {
           float x = gl_FragCoord.x / screen_size.x;
           float y = gl_FragCoord.y / screen_size.y;
           vec2 my_pos = vec2(x, y);
-          float v = 0.0;
           float r = 0.01; // hardcoded radius for each particle
           float threshhold = 1.0;
-
-
 
           gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
           int particle_count_int = int(particle_count);
 
+          float v = 0.0;
           for (int i = 0; i < 100000; i++) { // 100000 must be higher than max number of particles
             if (i >= particle_count_int) {
               break;
@@ -66,11 +64,11 @@ impl Renderer {
             
             v += r*r / (dist * dist);
 
+            if (v > threshhold) {
+              gl_FragColor = vec4(0.0, 0.0, 1.0, 1.0);
+              break;
+            }
           }
-          if (v > threshhold) {
-            gl_FragColor = vec4(0.0, 0.0, 1.0, 1.0);
-          }
-
         }
     "#,
     ).unwrap();
