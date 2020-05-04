@@ -12,13 +12,13 @@ pub struct World {
   neighbors: HashMap<(i32, i32), Vec<usize>>,
 }
 
-const PARTICLE_RADIUS: f32 = 0.5;
+const PARTICLE_RADIUS: f32 = 1.0;
 
-const GRAVITY: f32 = 30.0;
-const BOUNDARY_COR: f32 = 0.1; // Coefficient of restitution
+const GRAVITY: f32 = 40.0;
+const BOUNDARY_COR: f32 = 0.01; // Coefficient of restitution
 const BOUNDARY_MIN_DV: f32 = 0.005; // If particle is too slow, it is accelerated to atleast this much
 
-const INTERACTION_RADIUS: f32 = 10.0;
+const INTERACTION_RADIUS: f32 = 20.0;
 const STIFFNESS: f32 = 35.0;
 const REST_DENSITY: f32 = 5.0;
 const STIFFNESS_NEAR: f32 = 100.0;

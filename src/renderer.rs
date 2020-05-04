@@ -44,35 +44,40 @@ impl Renderer {
           float x = gl_FragCoord.x / screen_size.x;
           float y = gl_FragCoord.y / screen_size.y;
           vec2 my_pos = vec2(x, y);
-          float r = 0.01; // hardcoded radius for each particle
+          float r = 0.025; // hardcoded radius for each particle
           float threshhold = 1.0;
 
           gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
           int particle_count_int = int(particle_count);
 
           float v = 0.0;
+          float average_mass = 0.0;
+          float weight_sum = 0.0;
           for (int i = 0; i < 100000; i++) { // 100000 must be higher than max number of particles
             if (i >= particle_count_int) {
               break;
             }
 
-            float particle_x = texture2D(particles_texture, vec2(0.25, (float(i) + 0.5) / particle_count)).x;
-            float particle_y = texture2D(particles_texture, vec2(0.75, (float(i) + 0.5) / particle_count)).x;
+            float particle_x = texture2D(particles_texture, vec2(0.33 * (1.0 - 0.5), (float(i) + 0.5) / particle_count)).x;
+            float particle_y = texture2D(particles_texture, vec2(0.33 * (2.0 - 0.5), (float(i) + 0.5) / particle_count)).x;
+            float particle_mass = texture2D(particles_texture, vec2(0.33 * (3.0 - 0.5), (float(i) + 0.5) / particle_count)).x;
 
             vec2 particle_pos = vec2(particle_x, particle_y);
             float dist = length(particle_pos - my_pos);
-
-            // if (dist < r) {
-            //   gl_FragColor = vec4(0.0, 0.0, 1.0, 1.0);
-            //   break;
-            // }
             
             v += r*r / (dist * dist);
 
-            if (v > threshhold) {
-              gl_FragColor = vec4(0.0, 0.0, 1.0, 1.0);
-              break;
-            }
+            float weight = 1.0 / max(dist, 0.02);
+            average_mass += particle_mass * weight;
+            weight_sum += weight;
+          }
+
+          average_mass /= weight_sum;
+          average_mass = (average_mass - 0.75) / 0.25;
+
+          if (v > threshhold) {
+            gl_FragColor = vec4(0.0, 1.0 - average_mass, average_mass, 1.0);
+            // break;
           }
         }
     "#,
@@ -142,6 +147,7 @@ impl Renderer {
     for particle in &world.particles {
       vert_array.push(particle.pos.x / 100.0);
       vert_array.push(particle.pos.y / 100.0);
+      vert_array.push(particle.mass);
     }
 
     let particles_array = unsafe {
@@ -152,7 +158,7 @@ impl Renderer {
       WebGl2RenderingContext::TEXTURE_2D,
       0,
       WebGl2RenderingContext::R32F as i32,
-      2,
+      3,
       world.particles.len() as i32,
       0,
       WebGl2RenderingContext::RED,
