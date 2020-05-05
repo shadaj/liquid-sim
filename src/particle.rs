@@ -79,6 +79,7 @@ impl Div<f32> for Vec2D {
 }
 
 #[wasm_bindgen]
+#[derive(Copy, Clone)]
 pub struct Particle {
   pub pos: Vec2D,
   pub vel: Vec2D,
