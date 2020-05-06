@@ -41,6 +41,38 @@ impl World {
     self.particles.push(particle)
   }
 
+  pub fn apply_mouse_force(&mut self, x: f32, y: f32, dt: f32) {
+
+    let mouse_pos = Vec2D::new(x, y);
+    let force_pow = 0.60;
+    let max_force_mag = 450.0;
+
+    //neighbors
+    self.neighbors = self.build_spatial_map();
+    let spatial_map = &self.neighbors;
+
+    for idx in 0..self.particles.len() {
+      let cur_particle = &self.particles[idx];
+      let key = World::hash_position(&cur_particle);
+      let neighbors_default = vec![];
+      let neighbors = spatial_map.get(&key).unwrap_or(&neighbors_default);
+
+      //accumulate and apply velocity to each neighbor
+      for j in neighbors {
+        let pj = &mut self.particles[*j];
+
+        let dir = (pj.pos - mouse_pos) / (pj.pos - mouse_pos).length();
+        let dist2 = (pj.pos - mouse_pos).length();
+        let mag = (force_pow / dist2).min(max_force_mag / dt);
+        let vel = dir * mag;
+
+        pj.vel.x += vel.x;
+        pj.vel.y += vel.y;
+
+      }
+    }
+  }
+
   fn apply_gravity(&mut self) {
     for particle in &mut self.particles {
       // we don't add, we just set to reset the accumulator
